@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>My Budgeting Partner</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="icon-180.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Budgeting" />
+<meta name="theme-color" content="#8a5a44" />
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --bg-elev: #ffffff;
+    --text: #2b2620;
+    --text-dim: #6b6255;
+    --border: #e4ddcf;
+    --accent: #8a5a44;
+    --accent-2: #c9a86a;
+    --danger: #b0463c;
+    --shadow: 0 8px 24px rgba(60, 45, 25, 0.08);
+    --radius: 16px;
+    --font-serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+
+  [data-theme="dark"] {
+    --bg: #1c1a18;
+    --bg-elev: #262320;
+    --text: #f0ece2;
+    --text-dim: #b3aa98;
+    --border: #38342e;
+    --accent: #d9a273;
+    --accent-2: #e8c98f;
+    --danger: #e06a5c;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    transition: background 0.3s ease, color 0.3s ease;
+    padding: 24px 16px 60px;
+  }
+
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: var(--font-serif);
+    font-size: 1.7rem;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: 0.2px;
+  }
+
+  .theme-toggle {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.2rem;
+    box-shadow: var(--shadow);
+    transition: transform 0.15s ease;
+  }
+  .theme-toggle:active { transform: scale(0.92); }
+
+  .month-label {
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+    letter-spacing: 0.3px;
+  }
+
+  .card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+
+  .field-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .input-group {
+    flex: 1 1 200px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .amount-input {
+    display: flex;
+    align-items: center;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0 12px;
+  }
+  .amount-input span {
+    color: var(--text-dim);
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .amount-input input {
+    border: none;
+    background: transparent;
+    outline: none;
+    padding: 12px 4px;
+    font-size: 1rem;
+    color: var(--text);
+    width: 100%;
+    font-family: var(--font-sans);
+  }
+
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 36px 12px 14px;
+    font-size: 1rem;
+    color: var(--text);
+    font-family: var(--font-sans);
+    cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-dim) 50%), linear-gradient(135deg, var(--text-dim) 50%, transparent 50%);
+    background-position: calc(100% - 18px) center, calc(100% - 13px) center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+  }
+
+  .add-btn {
+    margin-top: 14px;
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+    font-family: var(--font-sans);
+  }
+  .add-btn:hover { opacity: 0.92; }
+  .add-btn:active { transform: scale(0.985); }
+
+  .total-block {
+    text-align: center;
+    padding: 26px 20px;
+  }
+  .total-block .field-label { text-align: center; }
+  .total-amount {
+    font-family: var(--font-serif);
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .chart-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .pie {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+
+  .empty-note {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 10px 0;
+  }
+
+  .legend {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legend-name { flex: 1; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .legend-pct { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+  .entries-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .entry-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .entry-icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-elev);
+    border-radius: 8px;
+  }
+  .entry-info { flex: 1; min-width: 0; }
+  .entry-category { font-weight: 600; font-size: 0.9rem; }
+  .entry-amount { color: var(--text-dim); font-size: 0.82rem; }
+  .delete-btn {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 1.3rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 6px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .delete-btn:hover { background: rgba(176, 70, 60, 0.12); }
+
+  .reset-btn {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid var(--danger);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--danger);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-sans);
+  }
+  .reset-btn:hover { background: rgba(176, 70, 60, 0.08); }
+
+  footer {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    margin-top: 30px;
+  }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 1.4rem; }
+    .total-amount { font-size: 2rem; }
+    .legend { grid-template-columns: 1fr; }
+    .card { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>My Budgeting Partner</h1>
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark / light mode">🌙</button>
+  </header>
+  <div class="month-label" id="monthLabel"></div>
+
+  <div class="card">
+    <div class="input-row">
+      <div class="input-group">
+        <label class="field-label" for="amountInput">Amount spent</label>
+        <div class="amount-input">
+          <span>£</span>
+          <input type="number" id="amountInput" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
+        </div>
+      </div>
+      <div class="input-group">
+        <label class="field-label" for="categorySelect">Category</label>
+        <select id="categorySelect"></select>
+      </div>
+    </div>
+    <button class="add-btn" id="addBtn">Add Expense</button>
+  </div>
+
+  <div class="card total-block">
+    <span class="field-label">Total Spent This Month</span>
+    <div class="total-amount" id="totalAmount">£0.00</div>
+  </div>
+
+  <div class="card chart-wrap">
+    <span class="field-label" style="align-self:flex-start;">Spending Breakdown</span>
+    <div id="pieWrap">
+      <div class="pie" id="pieChart"></div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="empty-note" id="emptyNote" style="display:none;">No spending recorded yet this month.</div>
+  </div>
+
+  <div class="card">
+    <span class="field-label">Recent Entries</span>
+    <div class="entries-list" id="entriesList"></div>
+  </div>
+
+  <button class="reset-btn" id="resetBtn">Reset This Month's Spending</button>
+
+  <footer>Data is stored locally on this device.</footer>
+</div>
+
+<script>
+  const CATEGORIES = [
+    { id: "food",          name: "Food & Dining",      icon: "🍔", color: "#e07a5f" },
+    { id: "groceries",     name: "Groceries",          icon: "🛒", color: "#81b29a" },
+    { id: "transport",     name: "Transport",          icon: "🚗", color: "#3d5a80" },
+    { id: "housing",       name: "Housing & Rent",     icon: "🏠", color: "#98462a" },
+    { id: "utilities",     name: "Utilities",          icon: "💡", color: "#e9c46a" },
+    { id: "entertainment", name: "Entertainment",      icon: "🎬", color: "#9d4edd" },
+    { id: "shopping",      name: "Shopping",           icon: "🛍️", color: "#f28482" },
+    { id: "health",        name: "Health & Fitness",   icon: "💊", color: "#43aa8b" },
+    { id: "education",     name: "Education",          icon: "📚", color: "#577590" },
+    { id: "travel",        name: "Travel",             icon: "✈️", color: "#4d908e" },
+    { id: "gifts",         name: "Gifts & Donations",  icon: "🎁", color: "#c9184a" },
+    { id: "subscriptions", name: "Subscriptions",      icon: "📱", color: "#7678ed" },
+    { id: "pets",          name: "Pets",                icon: "🐾", color: "#a68a64" },
+    { id: "personal",      name: "Personal Care",      icon: "💇", color: "#f4a261" },
+    { id: "other",         name: "Other",               icon: "🧾", color: "#6c757d" },
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const amountInput = $("amountInput");
+  const categorySelect = $("categorySelect");
+  const addBtn = $("addBtn");
+  const totalAmount = $("totalAmount");
+  const entriesList = $("entriesList");
+  const pieChart = $("pieChart");
+  const legend = $("legend");
+  const emptyNote = $("emptyNote");
+  const monthLabel = $("monthLabel");
+  const resetBtn = $("resetBtn");
+  const themeToggle = $("themeToggle");
+
+  function monthKey(date = new Date()) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  function loadData() {
+    try {
+      return JSON.parse(localStorage.getItem("budgetData") || "{}");
+    } catch {
+      return {};
+    }
+  }
+
+  function saveData(data) {
+    localStorage.setItem("budgetData", JSON.stringify(data));
+  }
+
+  let data = loadData();
+  const currentKey = monthKey();
+  if (!data[currentKey]) data[currentKey] = [];
+
+  function currentEntries() {
+    return data[currentKey];
+  }
+
+  function categoryById(id) {
+    return CATEGORIES.find((c) => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
+  }
+
+  function populateCategorySelect() {
+    categorySelect.innerHTML = CATEGORIES.map(
+      (c) => `<option value="${c.id}">${c.icon}  ${c.name}</option>`
+    ).join("");
+  }
+
+  function renderMonthLabel() {
+    const now = new Date();
+    monthLabel.textContent = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  }
+
+  function renderTotal() {
+    const total = currentEntries().reduce((sum, e) => sum + e.amount, 0);
+    totalAmount.textContent = `£${total.toFixed(2)}`;
+    return total;
+  }
+
+  function renderEntries() {
+    const entries = currentEntries();
+    if (entries.length === 0) {
+      entriesList.innerHTML = `<div class="empty-note">No entries yet. Add your first expense above.</div>`;
+      return;
+    }
+    entriesList.innerHTML = entries
+      .slice()
+      .reverse()
+      .map((e) => {
+        const cat = categoryById(e.category);
+        return `
+        <div class="entry-row" data-id="${e.id}">
+          <div class="entry-icon">${cat.icon}</div>
+          <div class="entry-info">
+            <div class="entry-category">${cat.name}</div>
+            <div class="entry-amount">£${e.amount.toFixed(2)}</div>
+          </div>
+          <button class="delete-btn" data-id="${e.id}" title="Delete">✕</button>
+        </div>`;
+      })
+      .join("");
+  }
+
+  function renderChart(total) {
+    const entries = currentEntries();
+    if (entries.length === 0 || total === 0) {
+      pieChart.style.background = "var(--border)";
+      legend.innerHTML = "";
+      emptyNote.style.display = "block";
+      return;
+    }
+    emptyNote.style.display = "none";
+
+    const totalsByCategory = {};
+    entries.forEach((e) => {
+      totalsByCategory[e.category] = (totalsByCategory[e.category] || 0) + e.amount;
+    });
+
+    const sorted = Object.entries(totalsByCategory).sort((a, b) => b[1] - a[1]);
+
+    let cumulative = 0;
+    const gradientParts = sorted.map(([catId, amt]) => {
+      const cat = categoryById(catId);
+      const pct = (amt / total) * 100;
+      const start = cumulative;
+      cumulative += pct;
+      return `${cat.color} ${start}% ${cumulative}%`;
+    });
+    pieChart.style.background = `conic-gradient(${gradientParts.join(", ")})`;
+
+    legend.innerHTML = sorted
+      .map(([catId, amt]) => {
+        const cat = categoryById(catId);
+        const pct = ((amt / total) * 100).toFixed(1);
+        return `
+        <div class="legend-item">
+          <span class="legend-dot" style="background:${cat.color}"></span>
+          <span class="legend-name">${cat.icon} ${cat.name}</span>
+          <span class="legend-pct">${pct}%</span>
+        </div>`;
+      })
+      .join("");
+  }
+
+  function renderAll() {
+    const total = renderTotal();
+    renderEntries();
+    renderChart(total);
+  }
+
+  addBtn.addEventListener("click", () => {
+    const amount = parseFloat(amountInput.value);
+    if (isNaN(amount) || amount <= 0) {
+      amountInput.focus();
+      amountInput.style.outline = "1px solid var(--danger)";
+      setTimeout(() => (amountInput.style.outline = "none"), 800);
+      return;
+    }
+    const entry = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      amount,
+      category: categorySelect.value,
+    };
+    currentEntries().push(entry);
+    saveData(data);
+    amountInput.value = "";
+    amountInput.focus();
+    renderAll();
+  });
+
+  amountInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") addBtn.click();
+  });
+
+  entriesList.addEventListener("click", (e) => {
+    const btn = e.target.closest(".delete-btn");
+    if (!btn) return;
+    const id = btn.dataset.id;
+    data[currentKey] = currentEntries().filter((entry) => entry.id !== id);
+    saveData(data);
+    renderAll();
+  });
+
+  resetBtn.addEventListener("click", () => {
+    if (currentEntries().length === 0) return;
+    if (confirm("Reset all spending for this month? This cannot be undone.")) {
+      data[currentKey] = [];
+      saveData(data);
+      renderAll();
+    }
+  });
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
+    localStorage.setItem("theme", theme);
+  }
+
+  themeToggle.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    applyTheme(current === "dark" ? "light" : "dark");
+  });
+
+  const savedTheme = localStorage.getItem("theme") ||
+    (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  applyTheme(savedTheme);
+
+  populateCategorySelect();
+  renderMonthLabel();
+  renderAll();
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
