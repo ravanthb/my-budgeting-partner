@@ -87,12 +87,53 @@
   }
   .theme-toggle:active { transform: scale(0.92); }
 
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
   .month-label {
     font-family: var(--font-serif);
     font-size: 1.05rem;
     color: var(--text-dim);
-    margin-bottom: 24px;
     letter-spacing: 0.3px;
+    min-width: 160px;
+    text-align: center;
+  }
+
+  .month-nav-btn {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 0.9rem;
+    box-shadow: var(--shadow);
+  }
+  .month-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+    box-shadow: none;
+  }
+
+  .history-note {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    margin: -12px 0 20px;
+  }
+
+  .input-row.disabled {
+    opacity: 0.5;
+    pointer-events: none;
   }
 
   .card {
@@ -316,10 +357,15 @@
     <h1>My Budgeting Partner</h1>
     <button class="theme-toggle" id="themeToggle" title="Toggle dark / light mode">🌙</button>
   </header>
-  <div class="month-label" id="monthLabel"></div>
+  <div class="month-nav">
+    <button class="month-nav-btn" id="prevMonthBtn" title="Previous month">◀</button>
+    <div class="month-label" id="monthLabel"></div>
+    <button class="month-nav-btn" id="nextMonthBtn" title="Next month">▶</button>
+  </div>
+  <div class="history-note" id="historyNote" style="display:none;">Viewing past month &mdash; read only</div>
 
   <div class="card">
-    <div class="input-row">
+    <div class="input-row" id="inputRow">
       <div class="input-group">
         <label class="field-label" for="amountInput">Amount spent</label>
         <div class="amount-input">
@@ -336,7 +382,7 @@
   </div>
 
   <div class="card total-block">
-    <span class="field-label">Total Spent This Month</span>
+    <span class="field-label">Total Spent</span>
     <div class="total-amount" id="totalAmount">£0.00</div>
   </div>
 
@@ -346,17 +392,17 @@
       <div class="pie" id="pieChart"></div>
     </div>
     <div class="legend" id="legend"></div>
-    <div class="empty-note" id="emptyNote" style="display:none;">No spending recorded yet this month.</div>
+    <div class="empty-note" id="emptyNote" style="display:none;">No spending recorded for this month.</div>
   </div>
 
   <div class="card">
-    <span class="field-label">Recent Entries</span>
+    <span class="field-label">Entries</span>
     <div class="entries-list" id="entriesList"></div>
   </div>
 
   <button class="reset-btn" id="resetBtn">Reset This Month's Spending</button>
 
-  <footer>Data is stored locally on this device.</footer>
+  <footer>Every month's spending is saved on this device — browse past months with the arrows above.</footer>
 </div>
 
 <script>
@@ -390,6 +436,10 @@
   const monthLabel = $("monthLabel");
   const resetBtn = $("resetBtn");
   const themeToggle = $("themeToggle");
+  const prevMonthBtn = $("prevMonthBtn");
+  const nextMonthBtn = $("nextMonthBtn");
+  const historyNote = $("historyNote");
+  const inputRow = $("inputRow");
 
   function monthKey(date = new Date()) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
@@ -411,8 +461,17 @@
   const currentKey = monthKey();
   if (!data[currentKey]) data[currentKey] = [];
 
+  let viewingKey = currentKey;
+
   function currentEntries() {
-    return data[currentKey];
+    if (!data[viewingKey]) data[viewingKey] = [];
+    return data[viewingKey];
+  }
+
+  function shiftMonth(key, delta) {
+    const [y, m] = key.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    return monthKey(d);
   }
 
   function categoryById(id) {
@@ -426,8 +485,18 @@
   }
 
   function renderMonthLabel() {
-    const now = new Date();
-    monthLabel.textContent = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+    const [y, m] = viewingKey.split("-").map(Number);
+    const d = new Date(y, m - 1, 1);
+    monthLabel.textContent = d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+
+    const isCurrent = viewingKey === currentKey;
+    nextMonthBtn.disabled = isCurrent;
+    historyNote.style.display = isCurrent ? "none" : "block";
+    inputRow.classList.toggle("disabled", !isCurrent);
+    addBtn.style.display = isCurrent ? "" : "none";
+    resetBtn.textContent = isCurrent
+      ? "Reset This Month's Spending"
+      : `Reset ${d.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}'s Spending`;
   }
 
   function renderTotal() {
@@ -508,6 +577,7 @@
   }
 
   addBtn.addEventListener("click", () => {
+    if (viewingKey !== currentKey) return;
     const amount = parseFloat(amountInput.value);
     if (isNaN(amount) || amount <= 0) {
       amountInput.focus();
@@ -535,7 +605,7 @@
     const btn = e.target.closest(".delete-btn");
     if (!btn) return;
     const id = btn.dataset.id;
-    data[currentKey] = currentEntries().filter((entry) => entry.id !== id);
+    data[viewingKey] = currentEntries().filter((entry) => entry.id !== id);
     saveData(data);
     renderAll();
   });
@@ -543,10 +613,23 @@
   resetBtn.addEventListener("click", () => {
     if (currentEntries().length === 0) return;
     if (confirm("Reset all spending for this month? This cannot be undone.")) {
-      data[currentKey] = [];
+      data[viewingKey] = [];
       saveData(data);
       renderAll();
     }
+  });
+
+  prevMonthBtn.addEventListener("click", () => {
+    viewingKey = shiftMonth(viewingKey, -1);
+    renderMonthLabel();
+    renderAll();
+  });
+
+  nextMonthBtn.addEventListener("click", () => {
+    if (viewingKey === currentKey) return;
+    viewingKey = shiftMonth(viewingKey, 1);
+    renderMonthLabel();
+    renderAll();
   });
 
   function applyTheme(theme) {
